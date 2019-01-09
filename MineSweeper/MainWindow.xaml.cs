@@ -17,8 +17,13 @@ namespace MineSweeper
 {
     public partial class MainWindow : Window
     {
-        //Dimension of a game field dimension * dimension
-        static int dimension = 9;
+        //Dimension of a game field
+        static int dimension_x = 9;
+        static int dimension_y = 9;
+
+        //Dimension of a cell
+        int cellWidth = 45;
+        int cellHeight = 45;
 
         //How many mines to place on a game field
         int minesCount = 10;
@@ -26,31 +31,37 @@ namespace MineSweeper
         //Tells how many flags you can place
         int flagsCount;
 
+        int cells = dimension_x * dimension_y;
+
         Random random = new Random();
 
         //Array of button that will be each game field square
-        Button[] square = new Button[(int)Math.Pow(dimension, 2)];
+        Button[] square = new Button[dimension_x * dimension_y];
 
         //2D array that will be actuall game field representation (+2 on each side to avoid OutOfBoundsException)
-        public string[,] field = new string[dimension + 2, dimension + 2];
+        public string[,] field = new string[dimension_x + 2, dimension_y + 2];
 
         public MainWindow()
         {
             InitializeComponent();
 
             flagsCount = minesCount;
+            Flags.Content = flagsCount;
 
-            for (int y = 0; y < dimension + 2; y++)
+            Height = cellHeight * dimension_y + 100;
+            Width = cellWidth * dimension_x + 20;
+
+            for (int y = 0; y < dimension_y + 2; y++)
             {
-                for (int x = 0; x < dimension + 2; x++)
+                for (int x = 0; x < dimension_x + 2; x++)
                 {
                     field[x, y] = "X";
                 }
             }
 
-            for (int y = 1; y < dimension + 1; y++)
+            for (int y = 1; y < dimension_y + 1; y++)
             {
-                for (int x = 1; x < dimension + 1; x++)
+                for (int x = 1; x < dimension_x + 1; x++)
                 {
                     field[x, y] = "";
                 }
@@ -59,21 +70,21 @@ namespace MineSweeper
             //puts randomly mines
             for (int i = 0; i < minesCount; i++)
             {
-                int x = random.Next(1, dimension + 1);
-                int y = random.Next(1, dimension + 1);
+                int x = random.Next(1, dimension_x + 1);
+                int y = random.Next(1, dimension_y + 1);
 
                 while (field[x, y] == "M")
                 {
-                    x = random.Next(1, dimension + 1);
-                    y = random.Next(1, dimension + 1);
+                    x = random.Next(1, dimension_x + 1);
+                    y = random.Next(1, dimension_y + 1);
                 }
 
                 field[x, y] = "M";
             }
 
-            for (int y = 1; y < dimension + 1; y++)
+            for (int y = 1; y < dimension_y + 1; y++)
             {
-                for (int x = 1; x < dimension + 1; x++)
+                for (int x = 1; x < dimension_x + 1; x++)
                 {
                     if (field[x, y] != "M")
                     {
@@ -100,26 +111,32 @@ namespace MineSweeper
                 VerticalAlignment = VerticalAlignment.Bottom
             };
 
-            for(int i = 0; i<dimension; i++)
+            for(int i = 0; i<dimension_x; i++)
             {
-                gameField.ColumnDefinitions.Add(new ColumnDefinition {Width = new GridLength(45) });
-                gameField.RowDefinitions.Add(new RowDefinition { Height = new GridLength(45) });
+                gameField.ColumnDefinitions.Add(new ColumnDefinition {Width = new GridLength(cellWidth) });
             }
 
-            for(int y = 0; y<dimension; y++)
+            for(int i = 0; i< dimension_y; i++)
             {
-                for(int x = 0; x<dimension; x++)
+                gameField.RowDefinitions.Add(new RowDefinition { Height = new GridLength(cellHeight) });
+            }
+
+            for(int y = 0; y<dimension_y; y++)
+            {
+                for(int x = 0; x<dimension_x; x++)
                 {
-                    square[x + dimension * y] = new Button();
-                    square[x + dimension * y].Click += Square_Click;
-                    square[x + dimension * y].MouseRightButtonDown += Put_Flag;
-                    Grid.SetColumn(square[x + dimension * y], x);
-                    Grid.SetRow(square[x + dimension * y], y);
-                    gameField.Children.Add(square[x + dimension * y]);
+                    square[x + dimension_y * y] = new Button();
+                    square[x + dimension_y * y].Click += Square_Click;
+                    square[x + dimension_y * y].MouseRightButtonDown += Put_Flag;
+                    Grid.SetColumn(square[x + dimension_y * y], x);
+                    Grid.SetRow(square[x + dimension_y * y], y);
+                    gameField.Children.Add(square[x + dimension_y * y]);
                 }
             }
 
-            Content = gameField;
+            Grid.SetColumn(gameField, 0);
+            Grid.SetRow(gameField, 1);
+            GameWindow.Children.Add(gameField);
         }
 
         private void Put_Flag(object sender, MouseEventArgs e)
@@ -136,17 +153,22 @@ namespace MineSweeper
                     button.FontWeight = FontWeights.Bold;
                     button.Content = "F";
                     flagsCount--;
+                    cells--;
                 }
                 else
                 {
                     button.Content = "";
                     flagsCount++;
+                    cells++;
                 }
+                Flags.Content = flagsCount;
             }
             else if(flagsCount == 0 && (string)button.Content == "F")
             {
                 button.Content = "";
                 flagsCount++;
+                cells++;
+                Flags.Content = flagsCount;
             }
 
         }
@@ -198,10 +220,22 @@ namespace MineSweeper
                 button.FontSize = 18;
                 button.FontWeight = FontWeights.Bold;
                 button.IsEnabled = false;
+                cells--;
+
+                if(cells==0)
+                {
+                    MessageBox.Show("You win!");
+                }
             }
             else if(string.IsNullOrEmpty(field[x + 1, y + 1]))
             {
                 button.IsEnabled = false;
+                cells--;
+
+                if (cells == 0)
+                {
+                    MessageBox.Show("You win!");
+                }
 
                 //Queue<Point> emptyCells = new Queue<Point>();
 
@@ -245,21 +279,23 @@ namespace MineSweeper
             else
             {
                 //show all mines on the game field and game over
-                for (int _y = 0; _y<dimension; _y++)
+                for (int _y = 0; _y<dimension_y; _y++)
                 {
-                    for(int _x = 0; _x<dimension; _x++)
+                    for(int _x = 0; _x<dimension_x; _x++)
                     {
-                        square[_x + dimension * _y].Click -= Square_Click;
+                        square[_x + dimension_y * _y].Click -= Square_Click;
 
                         if (field[_x + 1, _y + 1] == "M")
                         {
-                            square[_x + dimension * _y].Content = field[_x + 1, _y + 1];
-                            square[_x + dimension * _y].FontSize = 18;
-                            square[_x + dimension * _y].Background = Brushes.Red;
-                            square[_x + dimension * _y].FontWeight = FontWeights.Bold;
+                            square[_x + dimension_y * _y].Content = field[_x + 1, _y + 1];
+                            square[_x + dimension_y * _y].FontSize = 18;
+                            square[_x + dimension_y * _y].Background = Brushes.Red;
+                            square[_x + dimension_y * _y].FontWeight = FontWeights.Bold;
                         }
                     }
                 }
+
+                MessageBox.Show("Game over!");
             }
         }
     }
