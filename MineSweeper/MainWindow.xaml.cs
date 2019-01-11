@@ -26,10 +26,16 @@ namespace MineSweeper
         int cellHeight = 45;
 
         //How many mines to place on a game field
-        int minesCount = 10;
+        static int minesCount = 10;
 
         //Tells how many flags you can place
         int flagsCount;
+
+        BitmapImage mineBitmap;
+        BitmapImage flagBitmap;
+
+        Image[] mine = new Image[minesCount];
+        Image[] flag = new Image[minesCount];
 
         int cells = dimension_x * dimension_y;
 
@@ -44,6 +50,20 @@ namespace MineSweeper
         public MainWindow()
         {
             InitializeComponent();
+
+            mineBitmap = new BitmapImage(new Uri("Images/mine.png", UriKind.Relative));
+            flagBitmap = new BitmapImage(new Uri("Images/flag.png", UriKind.Relative));
+
+            for(int i = 0; i<minesCount; i++)
+            {
+                mine[i] = new Image();
+                mine[i].Source = mineBitmap;
+                mine[i].Stretch = Stretch.Fill;
+
+                flag[i] = new Image();
+                flag[i].Source = flagBitmap;
+                flag[i].Stretch = Stretch.Fill;
+            }
 
             flagsCount = minesCount;
             Flags.Content = flagsCount;
@@ -145,6 +165,8 @@ namespace MineSweeper
             int x = Grid.GetColumn(button);
             int y = Grid.GetRow(button);
 
+            int flags = 0;
+
             if(flagsCount>0)
             {
                 if((string)button.Content != "F")
@@ -171,6 +193,10 @@ namespace MineSweeper
                 Flags.Content = flagsCount;
             }
 
+            if (cells == 0)
+            {
+                MessageBox.Show("You win!");
+            }
         }
 
         private void Square_Click(object sender, RoutedEventArgs e)
@@ -278,6 +304,8 @@ namespace MineSweeper
             }
             else
             {
+                button.Background = Brushes.Red;
+                int imagesCount = 0;
                 //show all mines on the game field and game over
                 for (int _y = 0; _y<dimension_y; _y++)
                 {
@@ -287,10 +315,8 @@ namespace MineSweeper
 
                         if (field[_x + 1, _y + 1] == "M")
                         {
-                            square[_x + dimension_y * _y].Content = field[_x + 1, _y + 1];
-                            square[_x + dimension_y * _y].FontSize = 18;
-                            square[_x + dimension_y * _y].Background = Brushes.Red;
-                            square[_x + dimension_y * _y].FontWeight = FontWeights.Bold;
+                            square[_x + dimension_y * _y].Content = mine[imagesCount];
+                            imagesCount++;
                         }
                     }
                 }
